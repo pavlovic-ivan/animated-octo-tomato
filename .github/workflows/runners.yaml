@@ -1,51 +1,60 @@
-# name: Runners Deployment
+name: Test masking inputs
+on:
+  workflow_dispatch:
+    inputs:
+      secret:
+        description: "secret value"
+        required: true
+      token:
+        description: "token value"
+        required: true
+      secret_token:
+        description: "secret_token value"
+        required: true
+jobs:
+  test_masking_inputs:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Test masking inputs
+        id: add_mask
+        run: |
+          INP_SECRET=$(jq -r '.inputs.secret' $GITHUB_EVENT_PATH)
+          INP_TOKEN=$(jq -r '.inputs.token' $GITHUB_EVENT_PATH)
+          INP_SECRET_TOKEN=$(jq -r '.inputs.secret_token' $GITHUB_EVENT_PATH)
+          echo Before mask
+          echo $INP_SECRET
+          echo $INP_TOKEN
+          echo $INP_SECRET_TOKEN
+          echo ::add-mask::$INP_SECRET
+          echo ::add-mask::$INP_TOKEN
+          echo ::add-mask::$INP_SECRET_TOKEN
+          echo After mask
+          echo $INP_SECRET
+          echo $INP_TOKEN
+          echo $INP_SECRET_TOKEN
+          echo Setting output
+          echo ::set-output name=secret::$INP_SECRET
+          echo ::set-output name=token::$INP_TOKEN
+          echo ::set-output name=secret_token::$INP_SECRET_TOKEN
+          echo Setting environment variables
+          echo SECRET="$INP_SECRET" >> $GITHUB_ENV
+          echo TOKEN="$INP_TOKEN" >> $GITHUB_ENV
+          echo SECRET_TOKEN="$INP_SECRET_TOKEN" >> $GITHUB_ENV
 
-# # on:
-# #   workflow_run:
-# #     workflows: [CI]
-# #     types: [completed]
+      - name: Check output from another step
+        run: |
+          echo "${{ steps.add_mask.outputs.secret }}"
+          echo "${{ steps.add_mask.outputs.token }}"
+          echo "${{ steps.add_mask.outputs.secret_token }}"
 
+      - name: Check environment variables 1
+        run: |
+          echo "${{ env.SECRET }}"
+          echo "${{ env.TOKEN }}"
+          echo "${{ env.SECRET_TOKEN }}"
 
-# jobs:
-#   dump_contexts_to_log:
-#     if: ${{ github.event.repository.default_branch == github.event.workflow_run.head_branch && (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'schedule') && github.event.workflow_run.conclusion == 'failure' }}
-#     runs-on: ubuntu-latest
-#     environment: protected
-#     steps:
-#       - name: Dump GitHub context
-#         id: github_context_step
-#         run: echo '${{ toJSON(github) }}'
-#       - name: Echo head branch
-#         run: echo '${{ github.event.workflow_run.head_branch }}'
-#       - name: Echo default branch
-#         run: echo '${{ github.event.repository.default_branch }}'
-#       - name: send-slack-message
-#         uses: rtCamp/action-slack-notify@v2
-#         env:
-#           SLACK_WEBHOOK: ${{ secrets.HOOK }}
-#           SLACK_MESSAGE: ${{ format('Workflow "{0}" failed. Check why here{1} {2}', github.event.workflow.name, ':' , github.event.workflow_run.html_url) }}
-#           SLACK_COLOR: '#990f02'
-#           MSG_MINIMAL: 'commit'
-#           SLACK_FOOTER: ''
-#           SLACK_MSG_AUTHOR: 'Github Workflow Notifier'
-#           SLACK_ICON_EMOJI: ':bell:'
-#           SLACK_ICON: https://pbs.twimg.com/profile_images/1145956652635570176/jbru7OZG_400x400.jpg
-#       # - name: Discord notification
-#       #   env:
-#       #     DISCORD_WEBHOOK: ${{ secrets.DISCORD }}
-#       #   uses: Ilshidur/action-discord@master
-#       #   with:
-#       #     args: ${{ format('Workflow "{0}" failed. Check why here{1} {2}', github.event.workflow.name, ':' , github.event.workflow_run.html_url) }}
-#       # https://discordapp.com/api/webhooks/
-#       # 1013059457275674634/
-#       # FO55I3Yk1kmSr53G1c1MKDWx98FzqNhsqYB2Wlnj3SI2qnY0d-SnQRnp8k3wu2TzL87v
-
-#       - name: send custom message with args
-#         uses: appleboy/discord-action@master
-#         with:
-#           webhook_id: ${{ secrets.WEBHOOK_ID }}
-#           webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
-#           args: ${{ format('Workflow "{0}" failed. Check why here{1} {2}', github.event.workflow.name, ':' , github.event.workflow_run.html_url) }}
-#           color: '#990f02'
-#           avatar_url: https://pbs.twimg.com/profile_images/1145956652635570176/jbru7OZG_400x400.jpg
-#           username: 'Github Workflow Notifier'
+      - name: Check environment variables 2
+        run: |
+          echo $SECRET
+          echo $TOKEN
+          echo $SECRET_TOKEN
